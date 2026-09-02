@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>Bounce</AssemblyName>
+    <RootNamespace>Bounce</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <Product>Bounce Multi-Monitor Screensaver</Product>
+    <Description>A bouncing-ball screensaver that respects real multi-monitor geometry.</Description>
+    <!--
+      Per-monitor DPI awareness is declared in app.manifest instead of via
+      ApplicationHighDpiMode: that property only takes effect through the
+      SDK-generated ApplicationConfiguration.Initialize() call, which this
+      project doesn't use. WFO0003 assumes every project uses that
+      generated entry point and suggests the (here, ineffective)
+      alternative; suppressed since the manifest is deliberate and correct.
+    -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    A Windows screensaver is just an ordinary executable saved with a .scr
+    extension. This copies the build output so the result can be run (or,
+    for a framework-dependent build, installed) as a real screensaver
+    without any extra steps. See README.md for a self-contained publish
+    (needed to install on a machine without the .NET 10 runtime).
+  -->
+  <Target Name="CopyExeAsScr" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(TargetDir)$(TargetName).scr" />
+  </Target>
+
+</Project>

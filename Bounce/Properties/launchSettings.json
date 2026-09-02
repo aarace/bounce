@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Bounce (Run /s)": {
+      "commandName": "Project",
+      "commandLineArgs": "/s"
+    },
+    "Bounce (Configure /c)": {
+      "commandName": "Project",
+      "commandLineArgs": "/c"
+    }
+  }
+}
