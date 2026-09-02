@@ -4,7 +4,7 @@
     <DebuggerFlavor>ProjectDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup>
-    <ActiveDebugProfile>Bounce (Configure /c)</ActiveDebugProfile>
+    <ActiveDebugProfile>Bounce (Run /s)</ActiveDebugProfile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Update="ConfigForm.cs">
