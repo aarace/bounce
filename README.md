@@ -22,9 +22,7 @@ real screensaver would. Move the mouse, click, or press a key to exit.
 To test the configuration dialog instead, use the dropdown next to the
 Start button (▶ **Bounce (Run /s)** ▾) and pick **Bounce (Configure /c)**,
 then F5. These are defined in `Properties/launchSettings.json`. There's no
-profile for `/p <hwnd>` (preview) since it needs a real window handle from
-Windows itself — see the "Installing it" section below to see that mode
-in the actual Screensaver Settings dialog.
+profile for `/p <hwnd>` (preview) - see the note on it below.
 
 ## How it works
 
@@ -61,11 +59,8 @@ in the actual Screensaver Settings dialog.
   animation timer that steps every ball and repaints every window each
   tick, and wires exit-on-input (mouse move/click, key press) across all
   of them.
-- **`PreviewForm.cs`** — the small thumbnail Windows shows in the
-  Screensaver Settings dialog ("/p"); a single representative screen,
-  since the thumbnail is too small to usefully depict real geometry.
 - **`Program.cs`** — parses the standard `.scr` arguments: `/s` (run),
-  `/c` (configure), `/p <hwnd>` (preview).
+  `/c` (configure), `/p <hwnd>` (preview - deliberately a no-op; see below).
 - **`Settings.cs`** / **`ConfigForm.cs`** — ball color, size, count, speed,
   an optional image file, corner-flash, and trail settings, persisted to
   `HKCU\Software\Bounce`.
@@ -133,6 +128,13 @@ two monitors that should be adjacent aren't getting bridged).
 
 ## Notes
 
+- The small thumbnail in the legacy Screensaver Settings dialog (`/p`) is
+  intentionally left blank rather than rendered into. Embedding into it
+  requires reparenting this process's window under a HWND owned by that
+  (separate) process via classic Win32 `SetParent`/`SetWindowLong` calls;
+  that dialog is rarely used on modern Windows, and getting it to reliably
+  render wasn't worth the complexity or the risk of an orphaned process
+  that fails to embed and has no way to notice its host is gone.
 - Ball size/position math is in physical pixels; per-monitor DPI awareness,
   declared in `app.manifest`, keeps `Screen.AllScreens` reporting real,
   unscaled monitor geometry even with mixed-DPI monitors. This has to be
