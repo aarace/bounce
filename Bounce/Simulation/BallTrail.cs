@@ -75,8 +75,8 @@ namespace Bounce.Simulation
         /// <summary>Null means "never fade" (<see cref="Settings.ForeverTrailAge"/>).</summary>
         public double? MaxAgeSeconds { get; set; }
 
-        /// <summary>Records a new point for the given ball if it has moved far enough since its own last one. Returns whether it did.</summary>
-        public bool Record(int ballId, PointF position)
+        /// <summary>Records a new point for the given ball, unless it hasn't moved far enough since its own last one.</summary>
+        public void Record(int ballId, PointF position)
         {
             PointF? previous = _lastRecordedByBall.TryGetValue(ballId, out var last) ? (PointF?)last : null;
 
@@ -86,21 +86,26 @@ namespace Bounce.Simulation
                 float dy = position.Y - previous.Value.Y;
                 if ((dx * dx) + (dy * dy) < MinDistanceBetweenPoints * MinDistanceBetweenPoints)
                 {
-                    return false;
+                    return;
                 }
             }
 
             _lastRecordedByBall[ballId] = position;
-            double now = _clock.Elapsed.TotalSeconds;
-            _points.Enqueue(new TrailPoint(ballId, position, now));
-
-            while (_points.Count > MaxStoredPoints)
-            {
-                _points.Dequeue();
-            }
 
             if (MaxAgeSeconds.HasValue)
             {
+                // _points only ever feeds RebuildSegmentCache, which only
+                // runs in this (finite fade) mode - forever mode below
+                // renders from _pendingForeverSegments instead, so there's
+                // no point maintaining this queue when it is null.
+                double now = _clock.Elapsed.TotalSeconds;
+                _points.Enqueue(new TrailPoint(ballId, position, now));
+
+                while (_points.Count > MaxStoredPoints)
+                {
+                    _points.Dequeue();
+                }
+
                 double cutoff = now - MaxAgeSeconds.Value;
                 while (_points.Count > 0 && _points.Peek().RecordedAtSeconds < cutoff)
                 {
@@ -110,7 +115,9 @@ namespace Bounce.Simulation
                 // Finite fade mode: every point's alpha keeps changing as it
                 // ages, so the only correct approach is redrawing the whole
                 // (naturally bounded, by MaxAgeSeconds) trail each frame.
-                RebuildSegmentCache(now);
+                // Deferred to RefreshSegments(), called once per tick after
+                // every ball's Record() - rebuilding here instead would
+                // redo the same whole-cache work once per ball per tick.
             }
             else if (previous.HasValue)
             {
@@ -118,8 +125,23 @@ namespace Bounce.Simulation
                 // segment is new information.
                 _pendingForeverSegments.Add((previous.Value, position, ForeverAlpha));
             }
+        }
 
-            return true;
+        /// <summary>
+        /// Recomputes the finite (fading) mode segment cache with each
+        /// point's current age-based alpha. Callers should call this once
+        /// per tick, after every ball sharing this trail has had a chance
+        /// to <see cref="Record"/> a point for that tick - not once per
+        /// ball, which would redo this same whole-cache rebuild several
+        /// times for no reason. No-op in "forever" mode, which doesn't use
+        /// the segment cache at all.
+        /// </summary>
+        public void RefreshSegments()
+        {
+            if (MaxAgeSeconds.HasValue)
+            {
+                RebuildSegmentCache(_clock.Elapsed.TotalSeconds);
+            }
         }
 
         private void RebuildSegmentCache(double now)
@@ -175,14 +197,6 @@ namespace Bounce.Simulation
             var pending = new List<(PointF From, PointF To, float Alpha)>(_pendingForeverSegments);
             _pendingForeverSegments.Clear();
             return pending;
-        }
-
-        public void Clear()
-        {
-            _points.Clear();
-            _segmentCache.Clear();
-            _pendingForeverSegments.Clear();
-            _lastRecordedByBall.Clear();
         }
     }
 }

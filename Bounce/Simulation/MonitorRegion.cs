@@ -30,11 +30,29 @@ namespace Bounce.Simulation
         private readonly Bitmap _measurementSurface;
         private readonly Graphics _measurementGraphics;
 
+        // Every monitor and bridge rectangle, cached once so the common case
+        // in Contains() below - a probe that lies fully within a single one
+        // of them - can be tested with plain arithmetic instead of
+        // allocating a native GDI+ Region on every call.
+        private readonly RectangleF[] _walkableRects;
+
         public Rectangle Bounds { get; }
 
         public MonitorRegion(Rectangle[] screenBounds, Rectangle overallBounds)
         {
             Bounds = overallBounds;
+
+            var bridges = new List<Rectangle>(ComputeBridges(screenBounds));
+
+            _walkableRects = new RectangleF[screenBounds.Length + bridges.Count];
+            for (int i = 0; i < screenBounds.Length; i++)
+            {
+                _walkableRects[i] = screenBounds[i];
+            }
+            for (int i = 0; i < bridges.Count; i++)
+            {
+                _walkableRects[screenBounds.Length + i] = bridges[i];
+            }
 
             _region = new Region();
             _region.MakeEmpty();
@@ -42,7 +60,7 @@ namespace Bounce.Simulation
             {
                 _region.Union(rect);
             }
-            foreach (var bridge in ComputeBridges(screenBounds))
+            foreach (var bridge in bridges)
             {
                 _region.Union(bridge);
             }
@@ -106,6 +124,22 @@ namespace Bounce.Simulation
         /// <summary>True when every point of <paramref name="rect"/> lies on some monitor.</summary>
         public bool Contains(RectangleF rect)
         {
+            // Fast path, no allocation: this is true for the overwhelming
+            // majority of calls, since most of the time a ball's bounding
+            // box sits well inside a single monitor (or bridge) rectangle.
+            for (int i = 0; i < _walkableRects.Length; i++)
+            {
+                if (_walkableRects[i].Contains(rect))
+                {
+                    return true;
+                }
+            }
+
+            // Rare fallback: rect straddles the seam between two adjacent
+            // rectangles (e.g. two monitors touching edge-to-edge with no
+            // gap to bridge) so no single cached rectangle fully contains
+            // it, even though their union does. Only here is an exact,
+            // allocating GDI+ Region test actually needed.
             using (var probe = new Region(rect))
             {
                 probe.Exclude(_region);

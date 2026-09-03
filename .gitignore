@@ -58,3 +58,6 @@ TestResult.xml
 nunit-*.xml
 
 .vs/
+
+# User-specific project files
+*.user

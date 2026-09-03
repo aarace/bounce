@@ -58,7 +58,7 @@ namespace Bounce
             Padding = new Padding(12);
 
             var settings = Settings.Load();
-            _sizeInput.Value = settings.BallSize;
+            _sizeInput.Value = Clamp(settings.BallSize, (int)_sizeInput.Minimum, (int)_sizeInput.Maximum);
             _ballCountInput.Value = Clamp(settings.BallCount, Settings.MinBallCount, Settings.MaxBallCount);
             _speedSlider.Value = Clamp(settings.Speed, _speedSlider.Minimum, _speedSlider.Maximum);
             _selectedColor = settings.BallColor;

@@ -122,6 +122,10 @@ namespace Bounce
 
             if (_trail != null)
             {
+                // Once per tick, after every ball above has had its chance
+                // to Record() a point for this tick - not once per ball.
+                _trail.RefreshSegments();
+
                 var pending = _trail.GetAndClearPendingForeverSegments();
                 if (pending.Count > 0)
                 {

@@ -126,7 +126,37 @@ namespace Bounce
             // Always fully clear-and-redraw. Each window only covers one
             // monitor's worth of pixels, so this is cheap, and it avoids the
             // partial-invalidate edge cases that produced a clipped ball.
-            e.Graphics.Clear(Color.Black);
+            //
+            // A corner hit flashes this whole background rather than just
+            // tinting the ball - a tinted ball alone is too subtle to read
+            // as a "hit", especially at small ball sizes. Only the
+            // monitor(s) the hitting ball is actually on/near flash, found
+            // by the same visibility check used below to decide whether to
+            // draw that ball here at all.
+            float backgroundFlash = 0f;
+            if (_cornerFlashEnabled)
+            {
+                foreach (var ball in _balls)
+                {
+                    if (ball.FlashIntensity <= backgroundFlash)
+                    {
+                        continue;
+                    }
+
+                    var relative = new RectangleF(
+                        ball.Bounds.X - _screenBounds.X,
+                        ball.Bounds.Y - _screenBounds.Y,
+                        ball.Bounds.Width,
+                        ball.Bounds.Height);
+
+                    if (relative.IntersectsWith(ClientRectangle))
+                    {
+                        backgroundFlash = ball.FlashIntensity;
+                    }
+                }
+            }
+
+            e.Graphics.Clear(backgroundFlash > 0f ? Lerp(Color.Black, Color.White, backgroundFlash) : Color.Black);
 
             if (_trailLayer != null)
             {

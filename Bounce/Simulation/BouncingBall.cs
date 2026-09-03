@@ -55,8 +55,14 @@ namespace Bounce.Simulation
             bool yOk = _region.Contains(new RectangleF(Position.X, ny, Size, Size));
             bool bothOk = _region.Contains(new RectangleF(nx, ny, Size, Size));
 
-            if (xOk && yOk && bothOk)
+            if (bothOk)
             {
+                // The diagonal step lands inside the region - take it even
+                // if one of the individual axis-only probes above landed
+                // outside (e.g. two monitors touching at exactly one
+                // corner, where the diagonal is the only legal path
+                // between them and neither axis-only probe is inside
+                // either monitor on its own).
                 Position = new PointF(nx, ny);
                 return;
             }
